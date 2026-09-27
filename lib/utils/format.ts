@@ -1,20 +1,21 @@
-import { format, formatDistanceToNow, isToday, isTomorrow } from "date-fns"
+import { formatDistanceToNow } from "date-fns"
+import { formatShortDate, formatTime, relativeDayLabel } from "./time"
 
 export function formatCurrency(cents: number | null | undefined): string {
   if (cents == null) return "—"
-  return `€${(cents / 100).toFixed(2)}`
+  // Whole euros read cleaner ("€40"); keep cents only when they matter.
+  const euros = cents / 100
+  return `€${Number.isInteger(euros) ? euros : euros.toFixed(2)}`
 }
 
 export function formatDate(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date
-  if (isToday(d)) return `Today, ${format(d, "HH:mm")}`
-  if (isTomorrow(d)) return `Tomorrow, ${format(d, "HH:mm")}`
-  return format(d, "EEE d MMM, HH:mm")
+  return `${relativeDayLabel(d)}, ${formatTime(d)}`
 }
 
 export function formatDateShort(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date
-  return format(d, "d MMM yyyy")
+  return formatShortDate(d)
 }
 
 export function formatTimeAgo(date: string | Date): string {

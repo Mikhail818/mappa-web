@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
-import { Menu, X, Trophy, User, LogOut, Settings, Bell, MapPin } from "lucide-react"
+import { useTheme } from "next-themes"
+import { Bell, LogOut, MapPin, Monitor, Moon, Settings, Sun, User } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,23 +13,34 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Logo } from "@/components/brand/Logo"
 import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/types/database.types"
 import { cn } from "@/lib/utils"
+import { PLAYER_NAV, isActive } from "./nav"
 
-const NAV_LINKS = [
-  { href: "/home", label: "Home" },
-  { href: "/players", label: "Players" },
-  { href: "/matches", label: "Matches" },
-  { href: "/lobbies", label: "Lobbies" },
-  { href: "/pitches", label: "Pitches" },
-  { href: "/bookings", label: "Bookings" },
-]
+const THEMES = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+] as const
+
+export function initialsOf(name: string | null | undefined) {
+  return (
+    name
+      ?.split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  )
+}
 
 export function Navbar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -38,119 +49,110 @@ export function Navbar({ profile }: { profile: Profile | null }) {
     router.refresh()
   }
 
-  const initials = profile?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        {/* Logo */}
-        <Link href="/home" className="flex items-center gap-2 font-bold text-xl text-primary">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Trophy className="h-4 w-4 text-primary-foreground" />
-          </div>
-          Mappa
+    <header className="glass sticky top-0 z-40 border-b border-border/70">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+        <Link href="/home" aria-label="Mappa home">
+          <Logo markClassName="size-7" />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith(href)
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
-              )}
-            >
-              {label}
-            </Link>
-          ))}
+        <nav aria-label="Primary" className="hidden items-center gap-0.5 rounded-full bg-muted/70 p-1 md:flex">
+          {PLAYER_NAV.map((item) => {
+            const active = isActive(item, pathname)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 text-sm font-medium transition-all",
+                  active
+                    ? "bg-card text-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
         </nav>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-2">
-          <Link href="/notifications" className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "hidden md:flex")}>
-            <Bell className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          <Link
+            href="/notifications"
+            aria-label="Notifications"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "rounded-full",
+              pathname.startsWith("/notifications") && "bg-muted",
+            )}
+          >
+            <Bell className="size-5" />
           </Link>
 
           {profile ? (
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-2" size="sm" />}>
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={profile.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                      {initials ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:block text-sm font-medium max-w-[120px] truncate">
-                    {profile.full_name}
-                  </span>
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon" className="rounded-full" aria-label="Account" />}
+              >
+                <Avatar className="size-8">
+                  <AvatarImage src={profile.avatar_url ?? undefined} alt="" />
+                  <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
+                    {initialsOf(profile.full_name)}
+                  </AvatarFallback>
+                </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => router.push("/profile")} className="flex items-center gap-2 cursor-pointer">
-                  <User className="h-4 w-4" /> Profile
+              <DropdownMenuContent align="end" className="w-60">
+                <div className="px-2 py-2">
+                  <p className="truncate text-sm font-semibold">{profile.full_name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  <User className="size-4" /> Profile
                 </DropdownMenuItem>
                 {profile.is_venue_owner && (
-                  <DropdownMenuItem onClick={() => router.push("/owner")} className="flex items-center gap-2 cursor-pointer">
-                    <MapPin className="h-4 w-4" /> Venue Portal
+                  <DropdownMenuItem onClick={() => router.push("/owner")}>
+                    <MapPin className="size-4" /> Venue portal
                   </DropdownMenuItem>
                 )}
                 {profile.is_founding_player && (
-                  <DropdownMenuItem onClick={() => router.push("/admin")} className="flex items-center gap-2 cursor-pointer">
-                    <Settings className="h-4 w-4" /> Admin
+                  <DropdownMenuItem onClick={() => router.push("/admin")}>
+                    <Settings className="size-4" /> Admin
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                  <LogOut className="h-4 w-4 mr-2" /> Sign out
+                <div className="px-1.5 py-1">
+                  <p className="px-1 pb-1.5 text-xs text-muted-foreground">Appearance</p>
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-0.5">
+                    {THEMES.map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setTheme(value)}
+                        aria-pressed={theme === value}
+                        className={cn(
+                          "flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] font-medium transition-colors",
+                          theme === value ? "bg-card text-foreground shadow-soft" : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="size-3.5" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} variant="destructive">
+                  <LogOut className="size-4" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Link href="/login" className={buttonVariants({ size: "sm" })}>Sign in</Link>
           )}
-
-          {/* Mobile hamburger */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-border md:hidden">
-          <nav className="px-4 py-3 space-y-1">
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "block px-3 py-2 rounded-md text-sm font-medium",
-                  pathname.startsWith(href)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      )}
     </header>
   )
 }

@@ -39,6 +39,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/venues/") ||
     pathname.startsWith("/courts/") ||
     pathname.startsWith("/_next") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/apple-icon") ||
     pathname.startsWith("/api/webhooks")
 
   if (!user && !isPublic) {

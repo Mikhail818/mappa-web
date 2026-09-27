@@ -32,7 +32,7 @@ export default async function AdminCitiesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">City Health</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">City Health</h1>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {cities.map((city) => (
           <Card key={city}>

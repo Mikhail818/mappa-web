@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { BookingsTable } from "@/components/owner/BookingsTable"
+import { PageHeader } from "@/components/common/PageHeader"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Booking Requests" }
+export const metadata: Metadata = { title: "Bookings" }
 
 export default async function OwnerBookingsPage() {
   const supabase = await createClient()
@@ -23,9 +24,9 @@ export default async function OwnerBookingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Booking Requests</h1>
+      <PageHeader title="Bookings" subtitle="Confirm requests quickly — players are waiting to hear back." />
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <BookingsTable bookings={(bookings ?? []) as any} ownerId={user.id} />
+      <BookingsTable bookings={(bookings ?? []) as any} ownerId={user.id} nowIso={new Date().toISOString()} />
     </div>
   )
 }

@@ -20,7 +20,7 @@ export default async function AdminSignupsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">New Signups</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">New Signups</h1>
       <div className="space-y-2">
         {(signups ?? []).map((p) => (
           <Card key={p.id}>

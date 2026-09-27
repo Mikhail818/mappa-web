@@ -45,7 +45,7 @@ export default async function OwnerVenueDetailPage({ params }: Props) {
         <Link href="/owner/venues" className={buttonVariants({ variant: "ghost", size: "icon" })}>
           <ChevronLeft className="h-4 w-4" />
         </Link>
-        <h1 className="text-2xl font-bold">{venue.name}</h1>
+        <h1 className="text-[28px] leading-tight font-bold md:text-3xl">{venue.name}</h1>
       </div>
 
       <div className="flex items-center gap-2 text-muted-foreground text-sm">

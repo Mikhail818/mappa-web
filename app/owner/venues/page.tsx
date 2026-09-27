@@ -25,7 +25,7 @@ export default async function OwnerVenuesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Venues</h1>
+        <h1 className="text-[28px] leading-tight font-bold md:text-3xl">My Venues</h1>
       </div>
 
       {(venues?.length ?? 0) === 0 ? (

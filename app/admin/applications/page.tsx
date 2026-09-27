@@ -17,7 +17,7 @@ export default async function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Venue Owner Applications</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Venue Owner Applications</h1>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <ApplicationsReview applications={(applications ?? []) as any} adminId={user.id} />
     </div>

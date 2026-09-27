@@ -31,7 +31,7 @@ export default async function AdminFunnelPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Activation Funnel</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Activation Funnel</h1>
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Player Journey</CardTitle>

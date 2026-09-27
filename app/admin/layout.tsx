@@ -21,10 +21,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar profile={profile} />
-      <div className="flex flex-1">
+      <Navbar profile={profile} showNav={false} />
+      <div className="flex flex-1 flex-col md:flex-row">
         <Sidebar variant="admin" />
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 pt-5 pb-16 md:px-8 md:pt-8">{children}</main>
       </div>
     </div>
   )

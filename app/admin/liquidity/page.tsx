@@ -38,7 +38,7 @@ export default async function AdminLiquidityPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Liquidity Monitor</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Liquidity Monitor</h1>
       <p className="text-muted-foreground text-sm">Supply and demand balance across the platform</p>
       <div className="grid sm:grid-cols-3 gap-4">
         {metrics.map(({ label, value, description }) => (

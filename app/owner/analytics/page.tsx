@@ -73,7 +73,7 @@ export default async function OwnerAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Analytics</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Analytics</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map(({ label, value, icon, sub }) => (

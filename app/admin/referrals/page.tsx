@@ -29,7 +29,7 @@ export default async function AdminReferralsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Referrals</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Referrals</h1>
       {topReferrers.length === 0 ? (
         <EmptyState
           icon={<GitBranch className="h-7 w-7" />}

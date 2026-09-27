@@ -123,3 +123,8 @@ export function relativeDayLabel(date: Date, now: Date = new Date()): string {
   if (key === addDays(today, -1)) return "Yesterday"
   return `${formatWeekday(date)} ${formatDayMonth(date)}`
 }
+
+/** The instant `days` days before now, as an ISO string (for "last 7 days" style filters). */
+export function isoDaysAgo(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString()
+}

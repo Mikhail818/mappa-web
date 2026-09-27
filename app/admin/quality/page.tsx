@@ -24,7 +24,7 @@ export default async function AdminQualityPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Quality &amp; Safety</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Quality &amp; Safety</h1>
 
       <div className="grid grid-cols-2 gap-3">
         <Card>

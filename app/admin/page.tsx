@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Users, Building2, TrendingUp, Activity, GitBranch, FileText, Award, UserCheck } from "lucide-react"
+import { isoDaysAgo } from "@/lib/utils/time"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Admin Panel" }
@@ -24,7 +25,7 @@ export default async function AdminPage() {
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
-      .gte("created_at", new Date(Date.now() - 7 * 86400 * 1000).toISOString()),
+      .gte("created_at", isoDaysAgo(7)),
   ])
 
   const stats = [
@@ -48,7 +49,7 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Admin Panel</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Admin Panel</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map(({ label, value, icon, href }) => (

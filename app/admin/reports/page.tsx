@@ -13,7 +13,7 @@ export default async function AdminReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Reports</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Reports</h1>
       <EmptyState
         icon={<Flag className="h-7 w-7" />}
         title="No reports"

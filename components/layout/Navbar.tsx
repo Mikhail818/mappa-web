@@ -17,6 +17,7 @@ import { Logo } from "@/components/brand/Logo"
 import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/types/database.types"
 import { cn } from "@/lib/utils"
+import { initialsOf } from "@/lib/utils/format"
 import { PLAYER_NAV, isActive } from "./nav"
 
 const THEMES = [
@@ -25,19 +26,7 @@ const THEMES = [
   { value: "system", label: "System", icon: Monitor },
 ] as const
 
-export function initialsOf(name: string | null | undefined) {
-  return (
-    name
-      ?.split(" ")
-      .filter(Boolean)
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?"
-  )
-}
-
-export function Navbar({ profile }: { profile: Profile | null }) {
+export function Navbar({ profile, showNav = true }: { profile: Profile | null; showNav?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
@@ -51,11 +40,12 @@ export function Navbar({ profile }: { profile: Profile | null }) {
 
   return (
     <header className="glass sticky top-0 z-40 border-b border-border/70">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className={cn("mx-auto flex h-14 items-center justify-between gap-4 px-4", showNav ? "max-w-6xl" : "max-w-none md:px-5")}>
         <Link href="/home" aria-label="Mappa home">
           <Logo markClassName="size-7" />
         </Link>
 
+        {showNav && (
         <nav aria-label="Primary" className="hidden items-center gap-0.5 rounded-full bg-muted/70 p-1 md:flex">
           {PLAYER_NAV.map((item) => {
             const active = isActive(item, pathname)
@@ -76,6 +66,7 @@ export function Navbar({ profile }: { profile: Profile | null }) {
             )
           })}
         </nav>
+        )}
 
         <div className="flex items-center gap-1">
           <Link

@@ -4,12 +4,13 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { StatusBadge } from "@/components/common/StatusBadge"
+import { PageHeader } from "@/components/common/PageHeader"
 import { formatDate, formatCurrency } from "@/lib/utils/format"
 import { cn } from "@/lib/utils"
 import { CalendarCheck, Building2, TrendingUp, Clock, ChevronRight } from "lucide-react"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Owner Dashboard" }
+export const metadata: Metadata = { title: "Venue dashboard" }
 
 export default async function OwnerDashboardPage() {
   const supabase = await createClient()
@@ -45,20 +46,23 @@ export default async function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Venue Dashboard</h1>
+      <PageHeader
+        title="Dashboard"
+        subtitle={(venues ?? []).map((v) => v.name).join(" · ") || "Your venues at a glance"}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Pending Requests", value: pending?.length ?? 0, icon: <Clock className="h-4 w-4 text-yellow-500" />, href: "/owner/bookings" },
-          { label: "Upcoming Bookings", value: upcoming?.length ?? 0, icon: <CalendarCheck className="h-4 w-4 text-primary" />, href: "/owner/bookings" },
-          { label: "Your Venues", value: venues?.length ?? 0, icon: <Building2 className="h-4 w-4 text-blue-500" />, href: "/owner/venues" },
-          { label: "Expected Revenue", value: formatCurrency(revenue), icon: <TrendingUp className="h-4 w-4 text-green-500" />, href: "/owner/analytics" },
+          { label: "Requests waiting", value: pending?.length ?? 0, icon: <Clock className="h-4 w-4 text-yellow-500" />, href: "/owner/bookings" },
+          { label: "Upcoming", value: upcoming?.length ?? 0, icon: <CalendarCheck className="h-4 w-4 text-primary" />, href: "/owner/bookings" },
+          { label: "Venues", value: venues?.length ?? 0, icon: <Building2 className="h-4 w-4 text-blue-500" />, href: "/owner/venues" },
+          { label: "Upcoming revenue", value: formatCurrency(revenue), icon: <TrendingUp className="h-4 w-4 text-green-500" />, href: "/owner/analytics" },
         ].map(({ label, value, icon, href }) => (
           <Link key={label} href={href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">{icon} {label}</div>
-                <div className="text-2xl font-bold">{value}</div>
+            <Card className="h-full transition-all hover:ring-foreground/15 active:scale-[0.98]">
+              <CardContent className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">{icon} {label}</div>
+                <div className="text-2xl font-bold tabular-nums">{value}</div>
               </CardContent>
             </Card>
           </Link>
@@ -67,23 +71,23 @@ export default async function OwnerDashboardPage() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+          <CardHeader className="flex items-center justify-between pb-1">
+            <CardTitle className="font-semibold">Requests waiting</CardTitle>
             <Link href="/owner/bookings" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs h-7")}>
               View all <ChevronRight className="h-3 w-3 ml-1" />
             </Link>
           </CardHeader>
           <CardContent className="space-y-2">
             {pending?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pending requests</p>
+              <p className="text-sm text-muted-foreground">You&apos;re all caught up.</p>
             ) : (
               pending?.map((b) => {
                 const pitch = b.pitch as unknown as { name: string } | null
                 const requester = b.requester as unknown as { full_name: string } | null
                 return (
                   <Link key={b.id} href={`/owner/bookings`}>
-                    <div className="flex items-center justify-between p-2 rounded-lg border hover:bg-muted/50">
-                      <div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl p-2.5 ring-1 ring-foreground/[0.06] hover:bg-muted/50">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium">{requester?.full_name}</p>
                         <p className="text-xs text-muted-foreground">{pitch?.name} · {formatDate(b.starts_at)}</p>
                       </div>
@@ -97,8 +101,8 @@ export default async function OwnerDashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Upcoming Confirmed</CardTitle>
+          <CardHeader className="pb-1">
+            <CardTitle className="font-semibold">Coming up</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {upcoming?.length === 0 ? (
@@ -107,8 +111,8 @@ export default async function OwnerDashboardPage() {
               upcoming?.map((b) => {
                 const pitch = b.pitch as unknown as { name: string; venue: { name: string } } | null
                 return (
-                  <div key={b.id} className="flex items-center justify-between p-2 rounded-lg border">
-                    <div>
+                  <div key={b.id} className="flex items-center justify-between gap-3 rounded-xl p-2.5 ring-1 ring-foreground/[0.06]">
+                    <div className="min-w-0">
                       <p className="text-sm font-medium">{pitch?.venue?.name}</p>
                       <p className="text-xs text-muted-foreground">{pitch?.name} · {formatDate(b.starts_at)}</p>
                     </div>

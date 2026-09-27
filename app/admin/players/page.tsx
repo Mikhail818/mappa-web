@@ -29,7 +29,7 @@ export default async function AdminPlayersPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Player Management</h1>
+      <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Player Management</h1>
       <form>
         <input
           name="q"

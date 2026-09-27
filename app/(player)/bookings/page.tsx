@@ -1,100 +1,141 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
+import { PageHeader } from "@/components/common/PageHeader"
 import { StatusBadge } from "@/components/common/StatusBadge"
 import { EmptyState } from "@/components/common/EmptyState"
-import { formatDate, formatCurrency } from "@/lib/utils/format"
-import { Calendar, MapPin, ChevronRight } from "lucide-react"
+import { formatCurrency } from "@/lib/utils/format"
+import { formatMonth, formatTime, relativeDayLabel, zonedParts } from "@/lib/utils/time"
+import { cn } from "@/lib/utils"
+import { CalendarCheck, ChevronRight, History, Plus } from "lucide-react"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "My Bookings" }
+export const metadata: Metadata = { title: "Bookings" }
 
-export default async function BookingsPage() {
+interface Row {
+  id: string
+  status: string
+  starts_at: string
+  ends_at: string
+  format: string
+  total_price_cents: number | null
+  pitch: { name: string; venue: { name: string; city: string } | null } | null
+}
+
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { data: bookings } = await supabase
+  const { data } = await supabase
     .from("football_bookings")
-    .select(`*, pitch:football_pitches(name, venue:football_venues(name, city))`)
+    .select(`id, status, starts_at, ends_at, format, total_price_cents, pitch:football_pitches(name, venue:football_venues(name, city))`)
     .eq("requester_id", user.id)
-    .order("starts_at", { ascending: false })
+    .order("starts_at", { ascending: true })
 
-  const now = new Date().toISOString()
-  const upcoming = (bookings ?? []).filter((b) => b.starts_at >= now && !["cancelled", "declined"].includes(b.status))
-  const past = (bookings ?? []).filter((b) => b.starts_at < now || ["cancelled", "declined"].includes(b.status))
+  const bookings = (data ?? []) as unknown as Row[]
+  const now = new Date()
+  const nowIso = now.toISOString()
+  const isLive = (b: Row) => b.ends_at >= nowIso && ["requested", "confirmed"].includes(b.status)
+  const upcoming = bookings.filter(isLive)
+  const past = bookings.filter((b) => !isLive(b)).reverse()
+  const showPast = tab === "past"
+  const list = showPast ? past : upcoming
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Bookings</h1>
-        <Link href="/pitches" className={buttonVariants({ variant: "outline", size: "sm" })}>Book a pitch</Link>
+    <div className="mx-auto max-w-2xl space-y-5">
+      <PageHeader
+        title="Bookings"
+        action={
+          <Link href="/pitches" className={cn(buttonVariants({ size: "sm" }), "rounded-full")}>
+            <Plus /> New
+          </Link>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1" role="tablist">
+        {[
+          { label: "Upcoming", href: "/bookings", active: !showPast, count: upcoming.length },
+          { label: "Past", href: "/bookings?tab=past", active: showPast, count: past.length },
+        ].map((t) => (
+          <Link
+            key={t.label}
+            href={t.href}
+            role="tab"
+            aria-selected={t.active}
+            replace
+            scroll={false}
+            className={cn(
+              "rounded-xl py-2 text-center text-sm font-semibold transition-all",
+              t.active ? "bg-card text-foreground shadow-soft" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+            {t.count > 0 && <span className="ml-1.5 font-medium text-muted-foreground">{t.count}</span>}
+          </Link>
+        ))}
       </div>
 
-      {(bookings?.length ?? 0) === 0 ? (
-        <EmptyState
-          icon={<Calendar className="h-7 w-7" />}
-          title="No bookings yet"
-          description="Book a pitch to get started"
-          action={<Link href="/pitches" className={buttonVariants()}>Find Pitches</Link>}
-        />
+      {list.length === 0 ? (
+        showPast ? (
+          <EmptyState icon={<History className="size-7" />} title="No past bookings" description="Games you've played will show up here." />
+        ) : (
+          <EmptyState
+            icon={<CalendarCheck className="size-7" />}
+            title="Nothing booked yet"
+            description="Find a pitch near you and grab a time — it takes under a minute."
+            action={<Link href="/pitches" className={buttonVariants({ size: "lg" })}>Find a pitch</Link>}
+          />
+        )
       ) : (
-        <div className="space-y-6">
-          {upcoming.length > 0 && (
-            <section>
-              <h2 className="text-base font-semibold mb-3">Upcoming</h2>
-              <div className="space-y-3">
-                {upcoming.map((b) => <BookingRow key={b.id} booking={b} />)}
-              </div>
-            </section>
-          )}
-          {past.length > 0 && (
-            <section>
-              <h2 className="text-base font-semibold mb-3 text-muted-foreground">Past</h2>
-              <div className="space-y-3">
-                {past.map((b) => <BookingRow key={b.id} booking={b} />)}
-              </div>
-            </section>
-          )}
-        </div>
+        <ul className="space-y-3">
+          {list.map((b) => (
+            <li key={b.id}>
+              <BookingRow booking={b} now={now} dim={showPast} />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
 }
 
-function BookingRow({ booking }: { booking: Record<string, unknown> }) {
-  const b = booking as {
-    id: string; status: string; starts_at: string; ends_at: string; format: string
-    total_price_cents: number | null
-    pitch: { name: string; venue: { name: string; city: string } } | null
-  }
+function BookingRow({ booking: b, now, dim }: { booking: Row; now: Date; dim: boolean }) {
+  const start = new Date(b.starts_at)
+  const end = new Date(b.ends_at)
+  const status = b.status === "confirmed" && end < now ? "completed" : b.status
   return (
-    <Link href={`/bookings/${b.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-              <MapPin className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium truncate">{b.pitch?.venue?.name}</p>
-                <StatusBadge status={b.status} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{b.pitch?.name} · {b.format}</p>
-              <p className="text-xs text-muted-foreground">{formatDate(b.starts_at)}</p>
-            </div>
-            <div className="text-right shrink-0">
-              {b.total_price_cents && (
-                <p className="font-semibold text-primary">{formatCurrency(b.total_price_cents)}</p>
-              )}
-              <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto mt-1" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <Link
+      href={`/bookings/${b.id}`}
+      className="flex items-center gap-4 rounded-2xl bg-card p-3 pr-4 shadow-soft ring-1 ring-foreground/[0.06] transition-all hover:ring-foreground/15 active:scale-[0.99]"
+    >
+      <div
+        className={cn(
+          "flex w-14 shrink-0 flex-col items-center overflow-hidden rounded-xl ring-1 ring-foreground/[0.06]",
+          dim && "opacity-60",
+        )}
+      >
+        <span className="w-full bg-primary py-0.5 text-center text-[10px] font-bold tracking-wider text-primary-foreground uppercase">
+          {formatMonth(start)}
+        </span>
+        <span className="py-1 text-xl font-semibold tabular-nums">{zonedParts(start).day}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold">{b.pitch?.venue?.name ?? "Pitch"}</p>
+        <p className="truncate text-sm text-muted-foreground">
+          {relativeDayLabel(start, now)} · {formatTime(start)}–{formatTime(end)}
+        </p>
+        <div className="mt-1 flex items-center gap-2">
+          <StatusBadge status={status} />
+          <span className="truncate text-xs text-muted-foreground">
+            {b.pitch?.name} · {b.format}
+            {b.total_price_cents ? ` · ${formatCurrency(b.total_price_cents)}` : ""}
+          </span>
+        </div>
+      </div>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
     </Link>
   )
 }

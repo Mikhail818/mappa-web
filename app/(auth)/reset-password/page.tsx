@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import Link from "next/link"
-import { Trophy, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { AuthShell } from "@/components/auth/AuthShell"
 
 const schema = z.object({ email: z.string().email("Enter a valid email") })
 type FormValues = z.infer<typeof schema>
@@ -35,20 +36,11 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#07121D] to-[#172B42] px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 rounded-2xl bg-primary items-center justify-center mb-4">
-            <Trophy className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Reset password</h1>
-          <p className="mt-1 text-slate-400">We&apos;ll email you a reset link</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8">
+    <AuthShell title="Reset password" subtitle="We'll email you a link to choose a new one.">
           {sent ? (
             <div className="text-center space-y-3">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/12">
+                <svg className="size-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -71,8 +63,6 @@ export default function ResetPasswordPage() {
               </Link>
             </form>
           )}
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   )
 }

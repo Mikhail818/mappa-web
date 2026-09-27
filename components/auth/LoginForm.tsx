@@ -37,7 +37,11 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword(values)
     setLoading(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(
+        /invalid login credentials/i.test(error.message)
+          ? "That email and password don't match. Try again or reset your password."
+          : error.message,
+      )
       return
     }
     router.push(redirectTo)
@@ -51,8 +55,8 @@ export function LoginForm() {
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-card px-3 text-muted-foreground">or use email</span>
         </div>
       </div>
       <div className="space-y-2">
@@ -82,7 +86,7 @@ export function LoginForm() {
         />
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" size="lg" className="w-full" disabled={loading}>
         {loading ? "Signing in…" : "Sign in"}
       </Button>
     </form>

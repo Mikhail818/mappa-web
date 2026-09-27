@@ -28,7 +28,8 @@ export function OAuthButtons() {
       <Button
         type="button"
         variant="outline"
-        className="w-full gap-2"
+        size="lg"
+        className="w-full gap-2 text-sm"
         onClick={handleGoogle}
         disabled={loadingGoogle}
       >

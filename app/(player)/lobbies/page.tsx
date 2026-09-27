@@ -5,12 +5,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/common/EmptyState"
+import { PageHeader } from "@/components/common/PageHeader"
+import { PlaySwitch } from "@/components/common/PlaySwitch"
 import { formatDate } from "@/lib/utils/format"
 import { Users, MapPin, Plus, Calendar } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Open Lobbies" }
+export const metadata: Metadata = { title: "Open games" }
 
 export default async function LobbiesPage() {
   const supabase = await createClient()
@@ -26,22 +28,23 @@ export default async function LobbiesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Open Lobbies</h1>
-          <p className="text-muted-foreground text-sm mt-1">Join pickup games near you</p>
-        </div>
-        <Link href="/lobbies/new" className={cn(buttonVariants(), "gap-2")}>
-          <Plus className="h-4 w-4" /> Create Lobby
-        </Link>
-      </div>
+      <PageHeader
+        title="Play"
+        subtitle="Jump into a pickup game near you."
+        action={
+          <Link href="/lobbies/new" className={cn(buttonVariants({ size: "sm" }), "rounded-full")}>
+            <Plus /> Host a game
+          </Link>
+        }
+      />
+      <PlaySwitch active="lobbies" />
 
       {!lobbies?.length ? (
         <EmptyState
           icon={<Users className="h-7 w-7" />}
-          title="No open lobbies"
-          description="Be the first to create a lobby!"
-          action={<Link href="/lobbies/new" className={buttonVariants()}>Create Lobby</Link>}
+          title="No open games right now"
+          description="Start one — players nearby can see it and join in a tap."
+          action={<Link href="/lobbies/new" className={buttonVariants({ size: "lg" })}>Host a game</Link>}
         />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

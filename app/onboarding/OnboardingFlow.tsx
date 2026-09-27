@@ -18,7 +18,8 @@ import {
 import { completeOnboarding } from "@/lib/api/profile"
 import { toast } from "sonner"
 import type { Profile } from "@/types/database.types"
-import { Trophy, ChevronRight, ChevronLeft } from "lucide-react"
+import { ChevronRight, ChevronLeft } from "lucide-react"
+import { LogoMark } from "@/components/brand/Logo"
 import { cn } from "@/lib/utils"
 
 const CITIES = ["Nicosia", "Limassol", "Larnaca", "Paphos", "Famagusta", "Other"]
@@ -97,15 +98,14 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#07121D] to-[#172B42] px-4">
-      <div className="w-full max-w-lg">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+      <div className="pointer-events-none absolute inset-x-0 -top-48 h-[520px] bg-[radial-gradient(ellipse_at_center,oklch(0.7_0.16_155/0.22),transparent_65%)]" />
+      <div className="relative w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 rounded-2xl bg-primary items-center justify-center mb-4">
-            <Trophy className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Set up your profile</h1>
-          <p className="mt-1 text-slate-400">Just 3 quick steps</p>
+          <LogoMark className="mb-5 size-14 rounded-2xl shadow-lift" />
+          <h1 className="text-3xl font-bold">Let&apos;s get you playing</h1>
+          <p className="mt-1.5 text-muted-foreground">Three quick questions so we can match you well.</p>
         </div>
 
         {/* Progress */}
@@ -118,23 +118,23 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                   i < step
                     ? "bg-primary text-primary-foreground"
                     : i === step
-                      ? "bg-primary text-primary-foreground ring-2 ring-white/50"
-                      : "bg-white/20 text-white/50",
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                      : "bg-muted text-muted-foreground",
                 )}
               >
                 {i < step ? "✓" : i + 1}
               </div>
-              <span className={cn("text-sm hidden sm:block", i === step ? "text-white font-medium" : "text-white/50")}>
+              <span className={cn("text-sm hidden sm:block", i === step ? "font-medium" : "text-muted-foreground")}>
                 {label}
               </span>
               {i < STEPS.length - 1 && (
-                <div className={cn("h-px w-6 sm:w-10 mx-1", i < step ? "bg-primary" : "bg-white/20")} />
+                <div className={cn("h-px w-6 sm:w-10 mx-1", i < step ? "bg-primary" : "bg-border")} />
               )}
             </div>
           ))}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8">
+        <div className="rounded-3xl bg-card p-6 shadow-lift ring-1 ring-foreground/[0.06] sm:p-8">
           {step === 0 && (
             <form onSubmit={form1.handleSubmit(handleStep1)} className="space-y-5">
               <h2 className="text-xl font-semibold">About you</h2>
@@ -162,7 +162,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                   <p className="text-xs text-destructive">{form1.formState.errors.home_city.message}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full gap-2">
+              <Button type="submit" size="lg" className="w-full gap-2">
                 Continue <ChevronRight className="h-4 w-4" />
               </Button>
             </form>
@@ -180,7 +180,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                       type="button"
                       onClick={() => form2.setValue("skill_level", s)}
                       className={cn(
-                        "border rounded-lg p-3 text-sm font-medium text-left transition-colors",
+                        "rounded-2xl border p-4 text-left text-sm font-semibold transition-all active:scale-[0.98]",
                         form2.watch("skill_level") === s
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border hover:border-primary/50",
@@ -206,10 +206,10 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                 </Select>
               </div>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(0)}>
+                <Button type="button" variant="outline" size="lg" className="flex-1 gap-2" onClick={() => setStep(0)}>
                   <ChevronLeft className="h-4 w-4" /> Back
                 </Button>
-                <Button type="submit" className="flex-1 gap-2">
+                <Button type="submit" size="lg" className="flex-1 gap-2">
                   Continue <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -228,7 +228,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                       type="button"
                       onClick={() => form3.setValue("availability", a)}
                       className={cn(
-                        "border rounded-lg p-3 text-sm font-medium text-left transition-colors",
+                        "rounded-2xl border p-4 text-left text-sm font-semibold transition-all active:scale-[0.98]",
                         form3.watch("availability") === a
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border hover:border-primary/50",
@@ -243,11 +243,11 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                 )}
               </div>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(1)}>
+                <Button type="button" variant="outline" size="lg" className="flex-1 gap-2" onClick={() => setStep(1)}>
                   <ChevronLeft className="h-4 w-4" /> Back
                 </Button>
-                <Button type="submit" className="flex-1" disabled={saving}>
-                  {saving ? "Setting up…" : "Finish & play! 🎉"}
+                <Button type="submit" size="lg" className="flex-1" disabled={saving}>
+                  {saving ? "Setting up…" : "Start playing"}
                 </Button>
               </div>
             </form>

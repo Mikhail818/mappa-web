@@ -3,10 +3,14 @@ import { redirect } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MatchCard } from "@/components/matches/MatchCard"
 import { EmptyState } from "@/components/common/EmptyState"
+import { PageHeader } from "@/components/common/PageHeader"
+import { PlaySwitch } from "@/components/common/PlaySwitch"
 import { Swords } from "lucide-react"
+import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "My Matches" }
+export const metadata: Metadata = { title: "My 1v1s" }
 
 export default async function MatchesPage() {
   const supabase = await createClient()
@@ -26,7 +30,8 @@ export default async function MatchesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My Matches</h1>
+      <PageHeader title="Play" subtitle="Your 1v1 challenges and results." />
+      <PlaySwitch active="matches" />
       <Tabs defaultValue="upcoming">
         <TabsList>
           <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
@@ -44,7 +49,8 @@ export default async function MatchesPage() {
               <EmptyState
                 icon={<Swords className="h-7 w-7" />}
                 title="No matches here"
-                description="Go to Players to send a match request"
+                description="Challenge a player at your level from the Players tab."
+                action={<Link href="/players" className={buttonVariants()}>Find a player</Link>}
               />
             ) : (
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/common/StatusBadge"
-import { formatTimeAgo } from "@/lib/utils/format"
+import { formatTime, relativeDayLabel } from "@/lib/utils/time"
+import { PageHeader } from "@/components/common/PageHeader"
+import { cn } from "@/lib/utils"
 import { EmptyState } from "@/components/common/EmptyState"
-import { Bell, Swords, Calendar } from "lucide-react"
+import { Bell, CalendarCheck, ChevronRight, Swords } from "lucide-react"
 import Link from "next/link"
 import type { Metadata } from "next"
 
@@ -31,62 +32,91 @@ export default async function NotificationsPage() {
       .limit(10),
   ])
 
+  type Named = { full_name: string } | null
+  const firstName = (p: Named) => p?.full_name?.split(" ")[0] ?? "A player"
+
+  const matchTitle = (status: string, sentByMe: boolean, other: string) => {
+    switch (status) {
+      case "pending": return sentByMe ? `Challenge sent to ${other}` : `${other} challenged you to a 1v1`
+      case "confirmed": return `1v1 with ${other} is on`
+      case "completed": return `Result in: you vs ${other}`
+      case "disputed": return `Score with ${other} is under review`
+      case "cancelled": case "declined": return `1v1 with ${other} was called off`
+      default: return `1v1 with ${other}`
+    }
+  }
+  const bookingTitle = (status: string, venue: string) => {
+    switch (status) {
+      case "requested": return `Request sent to ${venue}`
+      case "confirmed": return `${venue} confirmed your booking`
+      case "declined": return `${venue} couldn't take your booking`
+      case "cancelled": return `Booking at ${venue} cancelled`
+      default: return `Booking at ${venue}`
+    }
+  }
+
   const notifications = [
-    ...(matchActivity ?? []).map((m) => ({
-      id: `match-${m.id}`,
-      type: "match" as const,
-      title: m.status === "pending" ? "Match request received" : `Match ${m.status}`,
-      subtitle: `vs ${m.player_id === user.id ? (m.opponent as unknown as { full_name: string } | null)?.full_name : (m.player as unknown as { full_name: string } | null)?.full_name}`,
-      href: `/matches/${m.id}`,
-      status: m.status,
-      time: m.updated_at,
-    })),
+    ...(matchActivity ?? []).map((m) => {
+      const sentByMe = m.player_id === user.id
+      const other = firstName((sentByMe ? m.opponent : m.player) as unknown as Named)
+      return {
+        id: `match-${m.id}`,
+        type: "match" as const,
+        title: matchTitle(m.status, sentByMe, other),
+        href: `/matches/${m.id}`,
+        status: m.status,
+        time: m.updated_at,
+        needsYou: m.status === "pending" && !sentByMe,
+      }
+    }),
     ...(bookingActivity ?? []).map((b) => ({
       id: `booking-${b.id}`,
       type: "booking" as const,
-      title: `Booking ${b.status}`,
-      subtitle: (b.pitch as unknown as { name: string; venue: { name: string } } | null)?.venue?.name ?? "Pitch booking",
+      title: bookingTitle(b.status, (b.pitch as unknown as { venue: { name: string } } | null)?.venue?.name ?? "The venue"),
       href: `/bookings/${b.id}`,
       status: b.status,
       time: b.updated_at,
+      needsYou: false,
     })),
-  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+  ].sort((a, b) => b.time.localeCompare(a.time))
+
+  const groups = new Map<string, typeof notifications>()
+  for (const n of notifications) {
+    const label = relativeDayLabel(new Date(n.time))
+    groups.set(label, [...(groups.get(label) ?? []), n])
+  }
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Notifications</h1>
+    <div className="mx-auto max-w-xl space-y-6">
+      <PageHeader title="Notifications" />
       {notifications.length === 0 ? (
-        <EmptyState
-          icon={<Bell className="h-7 w-7" />}
-          title="All caught up!"
-          description="No recent activity"
-        />
+        <EmptyState icon={<Bell className="size-7" />} title="You're all caught up" description="Challenges, game invites and booking updates will show up here." />
       ) : (
-        <div className="space-y-2">
-          {notifications.map((n) => (
-            <Link key={n.id} href={n.href}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="pt-3 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${n.type === "match" ? "bg-primary/10" : "bg-green-100"}`}>
-                      {n.type === "match"
-                        ? <Swords className="h-4 w-4 text-primary" />
-                        : <Calendar className="h-4 w-4 text-green-600" />}
+        [...groups].map(([label, items]) => (
+          <section key={label} className="space-y-2">
+            <h2 className="px-1 text-sm font-semibold text-muted-foreground">{label}</h2>
+            <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+              {items.map((n) => (
+                <li key={n.id}>
+                  <Link href={n.href} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/50">
+                    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", n.type === "match" ? "bg-amber-500/12 text-amber-600 dark:text-amber-400" : "bg-primary/10 text-primary")}>
+                      {n.type === "match" ? <Swords className="size-5" /> : <CalendarCheck className="size-5" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-[15px] leading-snug", n.needsYou && "font-semibold")}>{n.title}</p>
+                      <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        {formatTime(new Date(n.time))}
+                        <StatusBadge status={n.status} />
+                      </p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{n.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{n.subtitle}</p>
-                    </div>
-                    <div className="text-right shrink-0 space-y-1">
-                      <StatusBadge status={n.status} />
-                      <p className="text-xs text-muted-foreground">{formatTimeAgo(n.time)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    {n.needsYou && <span className="size-2.5 shrink-0 rounded-full bg-primary" aria-label="Needs your reply" />}
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </div>
   )

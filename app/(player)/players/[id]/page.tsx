@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/common/PageHeader"
 import { SkillBadge } from "@/components/common/SkillBadge"
-import { StatusBadge } from "@/components/common/StatusBadge"
-import { formatDateShort, formatTimeAgo } from "@/lib/utils/format"
+import { formatDateShort, formatTimeAgo, initialsOf } from "@/lib/utils/format"
 import { computeMatchFit } from "@/lib/utils/matchFit"
-import { MapPin, Star, Zap, Trophy, Swords } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { MapPin } from "lucide-react"
 import { PlayerActions } from "./PlayerActions"
 import type { Metadata } from "next"
 
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const supabase = await createClient()
   const { data } = await supabase.from("profiles").select("full_name").eq("id", id).single()
-  return { title: data?.full_name ?? "Player Profile" }
+  return { title: data?.full_name ?? "Player" }
 }
 
 export default async function PlayerProfilePage({ params }: Props) {
@@ -33,108 +33,96 @@ export default async function PlayerProfilePage({ params }: Props) {
       .select("*")
       .or(`and(player_id.eq.${user.id},opponent_id.eq.${id}),and(player_id.eq.${id},opponent_id.eq.${user.id})`)
       .eq("status", "completed")
-      .order("created_at", { ascending: false })
+      .order("scheduled_at", { ascending: false })
       .limit(10),
     supabase.from("player_favorites").select("player_id").eq("user_id", user.id).eq("player_id", id).maybeSingle(),
   ])
 
   if (!player) notFound()
 
-  const initials = player.full_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-  const matchFit = viewer ? computeMatchFit(viewer, player) : null
+  const isMe = player.id === user.id
+  const matchFit = viewer && !isMe ? computeMatchFit(viewer, player) : null
+  const games = (player.wins ?? 0) + (player.losses ?? 0)
+  const winRate = games ? Math.round(((player.wins ?? 0) / games) * 100) : null
+
+  // Score from the viewer's side: player_sets always belong to player_id.
+  const h2h = (headToHead ?? [])
+    .filter((m) => m.player_sets != null && m.opponent_sets != null)
+    .map((m) => {
+      const mine = m.player_id === user.id ? m.player_sets! : m.opponent_sets!
+      const theirs = m.player_id === user.id ? m.opponent_sets! : m.player_sets!
+      return { id: m.id, date: m.scheduled_at ?? m.created_at, mine, theirs, won: mine > theirs }
+    })
+  const h2hWins = h2h.filter((m) => m.won).length
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={player.avatar_url ?? undefined} />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl font-bold">{player.full_name}</h1>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
-                <SkillBadge level={player.skill_level} />
-                <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />{player.home_city}
-                </span>
-                {player.last_active_at && (
-                  <span className="text-xs text-muted-foreground">Active {formatTimeAgo(player.last_active_at)}</span>
-                )}
-              </div>
-              {player.bio && <p className="text-sm text-muted-foreground mt-2">{player.bio}</p>}
-            </div>
-          </div>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader back={{ href: "/players", label: "Players" }} className="-mb-4" />
 
-          {matchFit !== null && (
-            <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="font-medium">Match Fit Score</span>
-                <span className={`font-bold text-lg ${matchFit >= 70 ? "text-primary" : matchFit >= 50 ? "text-amber-600" : "text-muted-foreground"}`}>
-                  {matchFit}%
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${matchFit}%` }} />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <section className="flex flex-col items-center text-center">
+        <Avatar className="size-24 shadow-lift">
+          <AvatarImage src={player.avatar_url ?? undefined} alt="" />
+          <AvatarFallback className="bg-primary/10 text-3xl font-bold text-primary">{initialsOf(player.full_name)}</AvatarFallback>
+        </Avatar>
+        <h1 className="mt-4 text-[28px] leading-tight font-bold">{player.full_name}</h1>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+          <SkillBadge level={player.skill_level} />
+          <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" />{player.home_city}</span>
+          {player.playing_style && <span>· {player.playing_style}</span>}
+        </div>
+        {player.last_active_at && <p className="mt-1 text-xs text-muted-foreground">Active {formatTimeAgo(player.last_active_at)}</p>}
+        {player.bio && <p className="mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">{player.bio}</p>}
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {!isMe && <PlayerActions currentUserId={user.id} player={player} isFav={!!favData} />}
+
+      <section className="grid grid-cols-4 divide-x divide-border/70 rounded-3xl bg-card py-4 text-center shadow-soft ring-1 ring-foreground/[0.06]">
         {[
-          { label: "Wins", value: player.wins, icon: <Trophy className="h-4 w-4 text-amber-500" /> },
-          { label: "Losses", value: player.losses, icon: <Swords className="h-4 w-4 text-red-500" /> },
-          { label: "Rating", value: Number(player.rating).toFixed(1), icon: <Star className="h-4 w-4 text-yellow-500" /> },
-          { label: "Reliability", value: `${Math.round(Number(player.reliability_score))}%`, icon: <Zap className="h-4 w-4 text-primary" /> },
-        ].map(({ label, value, icon }) => (
-          <Card key={label}>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1">{icon} {label}</div>
-              <div className="text-2xl font-bold">{value}</div>
-            </CardContent>
-          </Card>
+          { label: "Record", value: `${player.wins ?? 0}–${player.losses ?? 0}` },
+          { label: "Win rate", value: winRate != null ? `${winRate}%` : "—" },
+          { label: "Rating", value: Number(player.rating ?? 0).toFixed(1) },
+          { label: "Reliable", value: `${Math.round(Number(player.reliability_score ?? 0))}%` },
+        ].map(({ label, value }) => (
+          <div key={label} className="px-1">
+            <p className="text-xl font-bold tabular-nums">{value}</p>
+            <p className="text-[11px] text-muted-foreground">{label}</p>
+          </div>
         ))}
-      </div>
+      </section>
 
-      {/* Head-to-head */}
-      {headToHead && headToHead.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Head-to-Head History</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {headToHead.map((m) => {
-              const youWon = m.score_submitted_by === user.id
-                ? (m.player_sets ?? 0) > (m.opponent_sets ?? 0)
-                : (m.opponent_sets ?? 0) > (m.player_sets ?? 0)
-              return (
-                <div key={m.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
-                  <span className="text-muted-foreground">{formatDateShort(m.created_at)}</span>
-                  <span className={`font-medium ${youWon ? "text-primary" : "text-muted-foreground"}`}>
-                    {youWon ? "You won" : "You lost"}
-                  </span>
-                  {m.player_sets != null && (
-                    <span className="text-muted-foreground">{m.player_sets} – {m.opponent_sets}</span>
-                  )}
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
+      {matchFit !== null && (
+        <section className="rounded-3xl bg-card p-5 shadow-soft ring-1 ring-foreground/[0.06]">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-semibold">Match fit</h2>
+            <p className={cn("text-2xl font-bold tabular-nums", matchFit >= 70 ? "text-primary" : matchFit >= 50 ? "text-amber-600" : "text-muted-foreground")}>
+              {matchFit}%
+            </p>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${matchFit}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Based on rating, availability, reliability and location.</p>
+        </section>
       )}
 
-      {/* Actions */}
-      {user.id !== player.id && (
-        <PlayerActions
-          currentUserId={user.id}
-          player={player}
-          isFav={!!favData}
-        />
+      {h2h.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold">Head to head</h2>
+            <p className="text-sm text-muted-foreground">
+              You {h2hWins}–{h2h.length - h2hWins}
+            </p>
+          </div>
+          <ul className="divide-y divide-border/70 overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06]">
+            {h2h.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span className="text-muted-foreground">{formatDateShort(m.date)}</span>
+                <span className={cn("font-semibold", m.won ? "text-primary" : "text-muted-foreground")}>{m.won ? "Won" : "Lost"}</span>
+                <span className="font-semibold tabular-nums">{m.mine}–{m.theirs}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

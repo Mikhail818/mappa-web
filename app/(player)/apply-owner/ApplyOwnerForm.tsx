@@ -113,7 +113,7 @@ export function ApplyOwnerForm({ userId, profile }: {
                 <div className="space-y-2"><Label>Business name</Label><Input {...register("business_name")} />{errors.business_name && <p className="text-xs text-destructive">{errors.business_name.message}</p>}</div>
                 <div className="space-y-2">
                   <Label>Business type</Label>
-                  <Select onValueChange={(v: string | null) => setValue("business_type", v ?? "")}>
+                  <Select onValueChange={(v: string | null) => setValue("business_type", v ?? "", { shouldValidate: true })}>
                     <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                     <SelectContent>{BUSINESS_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>

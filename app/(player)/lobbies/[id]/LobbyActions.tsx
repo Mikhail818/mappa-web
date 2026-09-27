@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Loader2, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { joinOpenMatch, leaveOpenMatch } from "@/lib/api/lobbies"
-import { toast } from "sonner"
-import { UserPlus, UserMinus } from "lucide-react"
 
 interface Props {
   lobbyId: string
@@ -13,47 +13,50 @@ interface Props {
   hasJoined: boolean
   isCreator: boolean
   isFull: boolean
-  currentSlot: number
+  nextSlot: number
 }
 
-export function LobbyActions({ lobbyId, currentUserId, hasJoined, isCreator, isFull, currentSlot }: Props) {
+export function LobbyActions({ lobbyId, currentUserId, hasJoined, isCreator, isFull, nextSlot }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  async function join() {
+  async function run(action: () => Promise<unknown>, success: string) {
     setLoading(true)
     try {
-      await joinOpenMatch(lobbyId, currentUserId, currentSlot)
-      toast.success("You've joined the lobby!")
+      await action()
+      toast.success(success)
       router.refresh()
-    } catch { toast.error("Failed to join") }
-    finally { setLoading(false) }
+    } catch {
+      toast.error(hasJoined ? "Couldn't leave the game" : "Couldn't join — the last spot may have just gone")
+      router.refresh()
+    } finally {
+      setLoading(false)
+    }
   }
 
-  async function leave() {
-    setLoading(true)
-    try {
-      await leaveOpenMatch(lobbyId, currentUserId)
-      toast.success("Left the lobby")
-      router.refresh()
-    } catch { toast.error("Failed to leave") }
-    finally { setLoading(false) }
+  if (isCreator) {
+    return <p className="text-center text-sm text-muted-foreground">You&apos;re hosting — share the game so it fills up.</p>
   }
 
-  if (isCreator) return null
-
-  return (
-    <div>
-      {hasJoined ? (
-        <Button variant="outline" onClick={leave} disabled={loading} className="gap-2 text-destructive border-destructive hover:bg-destructive/10">
-          <UserMinus className="h-4 w-4" /> Leave Lobby
-        </Button>
-      ) : (
-        <Button onClick={join} disabled={loading || isFull} className="gap-2">
-          <UserPlus className="h-4 w-4" />
-          {isFull ? "Lobby Full" : "Join Lobby"}
-        </Button>
-      )}
-    </div>
+  return hasJoined ? (
+    <Button
+      size="lg"
+      variant="ghost"
+      className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+      disabled={loading}
+      onClick={() => run(() => leaveOpenMatch(lobbyId, currentUserId), "You've left the game")}
+    >
+      Leave game
+    </Button>
+  ) : (
+    <Button
+      size="lg"
+      className="w-full"
+      disabled={loading || isFull}
+      onClick={() => run(() => joinOpenMatch(lobbyId, currentUserId, nextSlot), "You're in! See you on the pitch")}
+    >
+      {loading ? <Loader2 className="animate-spin" /> : <UserPlus />}
+      {isFull ? "Game is full" : "Join game"}
+    </Button>
   )
 }

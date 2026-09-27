@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface PageHeaderProps {
-  title: React.ReactNode
+  title?: React.ReactNode
   subtitle?: React.ReactNode
   /** Rendered on the right on wide screens, below the title on phones. */
   action?: React.ReactNode
@@ -23,13 +23,15 @@ export function PageHeader({ title, subtitle, action, back, className }: PageHea
           {back.label}
         </Link>
       )}
+      {(title || subtitle || action) && (
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-[28px] leading-tight font-bold md:text-3xl">{title}</h1>
+          {title && <h1 className="text-[28px] leading-tight font-bold md:text-3xl">{title}</h1>}
           {subtitle && <div className="mt-1 text-[15px] text-muted-foreground">{subtitle}</div>}
         </div>
         {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </div>
+      )}
     </div>
   )
 }

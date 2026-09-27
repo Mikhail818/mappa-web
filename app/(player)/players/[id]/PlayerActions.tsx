@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Heart, Swords } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import { MatchRequestModal } from "@/components/players/MatchRequestModal"
 import { toggleFavorite } from "@/lib/api/favorites"
-import { toast } from "sonner"
 import type { Profile } from "@/types/database.types"
+import { cn } from "@/lib/utils"
 
 interface Props {
   currentUserId: string
@@ -24,29 +25,29 @@ export function PlayerActions({ currentUserId, player, isFav: initialFav }: Prop
     try {
       await toggleFavorite(currentUserId, player.id, isFav)
       setIsFav(!isFav)
-      toast.success(isFav ? "Removed from favourites" : "Added to favourites")
     } catch {
-      toast.error("Failed to update")
+      toast.error("Couldn't update favourites")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex gap-3">
-      <Button variant="outline" className="flex-1 gap-2" onClick={handleFav} disabled={loading}>
-        <Heart className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
-        {isFav ? "Unfavourite" : "Favourite"}
+    <div className="flex gap-2">
+      <Button size="lg" className="flex-1" onClick={() => setShowRequest(true)}>
+        <Swords /> Challenge to a 1v1
       </Button>
-      <Button className="flex-1 gap-2" onClick={() => setShowRequest(true)}>
-        <Swords className="h-4 w-4" /> Send Request
+      <Button
+        size="icon-lg"
+        variant="outline"
+        onClick={handleFav}
+        disabled={loading}
+        aria-pressed={isFav}
+        aria-label={isFav ? "Remove from favourites" : "Add to favourites"}
+      >
+        <Heart className={cn("size-5", isFav && "fill-red-500 text-red-500")} />
       </Button>
-      <MatchRequestModal
-        open={showRequest}
-        onClose={() => setShowRequest(false)}
-        currentUserId={currentUserId}
-        opponent={player}
-      />
+      <MatchRequestModal open={showRequest} onClose={() => setShowRequest(false)} currentUserId={currentUserId} opponent={player} />
     </div>
   )
 }

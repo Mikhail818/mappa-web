@@ -40,3 +40,16 @@ export function formatXP(xp: number): string {
 export function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`
 }
+
+/** "Maria Ioannou" → "MI"; falls back to "?" for blank names. */
+export function initialsOf(name: string | null | undefined): string {
+  return (
+    name
+      ?.split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  )
+}

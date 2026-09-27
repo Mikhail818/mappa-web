@@ -1,18 +1,41 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PageHeader } from "@/components/common/PageHeader"
 import { StatusBadge } from "@/components/common/StatusBadge"
 import { SkillBadge } from "@/components/common/SkillBadge"
 import { MatchChat } from "@/components/matches/MatchChat"
 import { MatchActions } from "./MatchActions"
-import { formatDate } from "@/lib/utils/format"
-import { MapPin, Calendar } from "lucide-react"
+import { formatDate, initialsOf } from "@/lib/utils/format"
+import { cn } from "@/lib/utils"
+import { Calendar, MapPin } from "lucide-react"
 import type { Metadata } from "next"
 
 interface Props { params: Promise<{ id: string }> }
 
-export const metadata: Metadata = { title: "Match Detail" }
+export const metadata: Metadata = { title: "1v1" }
+
+type Person = { id: string; full_name: string; avatar_url: string | null; skill_level: string }
+
+function Side({ person, label, winner }: { person: Person | null; label: string; winner?: boolean }) {
+  const body = (
+    <>
+      <Avatar className={cn("mx-auto size-16", winner && "ring-3 ring-primary ring-offset-2 ring-offset-card")}>
+        <AvatarImage src={person?.avatar_url ?? undefined} alt="" />
+        <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initialsOf(person?.full_name)}</AvatarFallback>
+      </Avatar>
+      <p className="mt-2 truncate font-semibold">{person?.full_name ?? "Unknown"}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      {person?.skill_level && <SkillBadge level={person.skill_level} className="mt-1" />}
+    </>
+  )
+  return label === "You" || !person ? (
+    <div className="min-w-0 flex-1 text-center">{body}</div>
+  ) : (
+    <Link href={`/players/${person.id}`} className="min-w-0 flex-1 text-center">{body}</Link>
+  )
+}
 
 export default async function MatchDetailPage({ params }: Props) {
   const { id } = await params
@@ -29,91 +52,70 @@ export default async function MatchDetailPage({ params }: Props) {
   if (!match) notFound()
 
   const isPlayer = match.player_id === user.id
-  const me = isPlayer ? match.player : match.opponent
-  const opponent = isPlayer ? match.opponent : match.player
-  const opponentInitials = (opponent as unknown as { full_name: string } | null)?.full_name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-  const court = match.court as unknown as { name: string; city: string; address: string | null } | null
+  const isParticipant = isPlayer || match.opponent_id === user.id
+  const me = (isPlayer ? match.player : match.opponent) as unknown as Person | null
+  const opponent = (isPlayer ? match.opponent : match.player) as unknown as Person | null
+  const court = match.court as unknown as { name: string; city: string } | null
+  const hasScore = match.player_sets != null && match.opponent_sets != null
+  const mine = isPlayer ? match.player_sets : match.opponent_sets
+  const theirs = isPlayer ? match.opponent_sets : match.player_sets
+  const people = Object.fromEntries(
+    [match.player, match.opponent]
+      .map((p) => p as unknown as Person | null)
+      .filter((p): p is Person => !!p)
+      .map((p) => [p.id, { full_name: p.full_name, avatar_url: p.avatar_url }]),
+  )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Match header */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <StatusBadge status={match.status} />
-            {match.scheduled_at && (
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" /> {formatDate(match.scheduled_at)}
-              </span>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader back={{ href: "/matches", label: "My 1v1s" }} />
+
+      <section className="rounded-3xl bg-card p-5 shadow-soft ring-1 ring-foreground/[0.06]">
+        <div className="flex items-center justify-between gap-2">
+          <StatusBadge status={match.status} />
+          {match.scheduled_at ? (
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Calendar className="size-4" /> {formatDate(match.scheduled_at)}
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground">Time to be agreed</span>
+          )}
+        </div>
+
+        <div className="mt-6 flex items-center gap-2">
+          <Side person={me} label="You" winner={hasScore && mine! > theirs!} />
+          <div className="shrink-0 px-2 text-center">
+            {match.status === "completed" && hasScore ? (
+              <p className="text-4xl font-bold tracking-tight tabular-nums">
+                {mine}<span className="mx-1.5 text-muted-foreground/60">–</span>{theirs}
+              </p>
+            ) : (
+              <p className="text-xl font-bold text-muted-foreground/60">VS</p>
             )}
           </div>
+          <Side person={opponent} label="Opponent" winner={hasScore && theirs! > mine!} />
+        </div>
 
-          {/* Players */}
-          <div className="flex items-center justify-center gap-4">
-            <div className="text-center flex-1">
-              <Avatar className="h-16 w-16 mx-auto">
-                <AvatarImage src={(me as unknown as { avatar_url?: string | null } | null)?.avatar_url ?? undefined} />
-                <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                  {(me as unknown as { full_name: string } | null)?.full_name?.[0] ?? "?"}
-                </AvatarFallback>
-              </Avatar>
-              <p className="font-semibold mt-2">{(me as unknown as { full_name: string } | null)?.full_name}</p>
-              <SkillBadge level={(me as unknown as { skill_level: string } | null)?.skill_level ?? ""} />
-            </div>
-            <div className="text-center">
-              {match.status === "completed" && match.player_sets != null ? (
-                <div className="text-3xl font-bold">
-                  {isPlayer ? match.player_sets : match.opponent_sets}
-                  <span className="text-muted-foreground mx-2">–</span>
-                  {isPlayer ? match.opponent_sets : match.player_sets}
-                </div>
-              ) : (
-                <div className="text-2xl font-bold text-muted-foreground">VS</div>
-              )}
-            </div>
-            <div className="text-center flex-1">
-              <Avatar className="h-16 w-16 mx-auto">
-                <AvatarImage src={(opponent as unknown as { avatar_url?: string | null } | null)?.avatar_url ?? undefined} />
-                <AvatarFallback className="text-xl bg-muted text-muted-foreground">{opponentInitials}</AvatarFallback>
-              </Avatar>
-              <p className="font-semibold mt-2">{(opponent as unknown as { full_name: string } | null)?.full_name}</p>
-              <SkillBadge level={(opponent as unknown as { skill_level: string } | null)?.skill_level ?? ""} />
-            </div>
+        {(court || match.notes) && (
+          <div className="mt-6 space-y-2 border-t border-border/70 pt-4 text-center text-sm">
+            {court && (
+              <p className="flex items-center justify-center gap-1.5 text-muted-foreground">
+                <MapPin className="size-4" /> {court.name}, {court.city}
+              </p>
+            )}
+            {match.notes && <p className="text-muted-foreground italic">&ldquo;{match.notes}&rdquo;</p>}
           </div>
+        )}
+      </section>
 
-          {court && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" /> {court.name}, {court.city}
-            </div>
-          )}
-
-          {match.notes && (
-            <p className="mt-3 text-sm text-muted-foreground text-center italic">&ldquo;{match.notes}&rdquo;</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Actions (accept, score, dispute, cancel) */}
       <MatchActions
-        match={{
-          id: match.id,
-          status: match.status,
-          player_id: match.player_id,
-          opponent_id: match.opponent_id,
-        }}
+        match={{ id: match.id, status: match.status, player_id: match.player_id, opponent_id: match.opponent_id, scheduled_at: match.scheduled_at }}
         currentUserId={user.id}
+        opponentName={opponent?.full_name?.split(" ")[0] ?? "your opponent"}
       />
 
-      {/* Chat */}
-      {["confirmed", "pending", "completed"].includes(match.status) && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Chat</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MatchChat matchId={match.id} currentUserId={user.id} />
-          </CardContent>
-        </Card>
+      {isParticipant && ["confirmed", "pending", "completed"].includes(match.status) && (
+        <MatchChat matchId={match.id} currentUserId={user.id} people={people} />
       )}
     </div>
   )

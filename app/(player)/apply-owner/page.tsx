@@ -45,7 +45,7 @@ export default async function ApplyOwnerPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Apply to List Your Venue</h1>
+        <h1 className="text-[28px] leading-tight font-bold md:text-3xl">Apply to List Your Venue</h1>
         <p className="text-muted-foreground text-sm mt-1">Join Mappa as a venue partner and reach players across Cyprus</p>
       </div>
       <ApplyOwnerForm userId={user.id} profile={profile} />

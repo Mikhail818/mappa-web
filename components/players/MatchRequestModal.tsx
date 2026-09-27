@@ -1,29 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { WhenPicker } from "@/components/common/WhenPicker"
 import { createMatchRequest } from "@/lib/api/matches"
-import { toast } from "sonner"
 import type { Profile } from "@/types/database.types"
-
-const schema = z.object({
-  scheduledAt: z.string().optional(),
-  notes: z.string().max(200).optional(),
-})
-type FormValues = z.infer<typeof schema>
 
 interface Props {
   open: boolean
@@ -33,62 +26,61 @@ interface Props {
 }
 
 export function MatchRequestModal({ open, onClose, currentUserId, opponent }: Props) {
+  const [when, setWhen] = useState<Date | null>(null)
+  const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
+  const firstName = opponent.full_name.split(" ")[0]
 
-  const { register, handleSubmit, reset } = useForm<FormValues>({ resolver: zodResolver(schema) })
-
-  async function onSubmit(values: FormValues) {
+  async function send() {
     setLoading(true)
     try {
       await createMatchRequest(currentUserId, opponent.id, {
-        scheduledAt: values.scheduledAt || undefined,
-        notes: values.notes,
+        // A real instant, so it's stored correctly whatever the database's time zone.
+        scheduledAt: when?.toISOString(),
+        notes: notes.trim() || undefined,
       })
-      toast.success(`Match request sent to ${opponent.full_name}!`)
-      reset()
+      toast.success(`Challenge sent to ${firstName}`, { description: "You'll see it in Play once they reply." })
+      setWhen(null)
+      setNotes("")
       onClose()
     } catch {
-      toast.error("Failed to send request")
+      toast.error("Couldn't send your challenge. Try again.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Send Match Request</DialogTitle>
+          <DialogTitle>Challenge {firstName}</DialogTitle>
+          <DialogDescription>
+            1v1 against {opponent.full_name} · {opponent.skill_level} · {opponent.home_city}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Challenging <strong>{opponent.full_name}</strong> ({opponent.skill_level}) to a match.
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="scheduledAt">Proposed date & time (optional)</Label>
-            <Input
-              id="scheduledAt"
-              type="datetime-local"
-              {...register("scheduledAt")}
-              min={new Date().toISOString().slice(0, 16)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Message (optional)</Label>
+        <div className="space-y-5">
+          <WhenPicker value={when} onChange={setWhen} optional label="Suggest a time" />
+          <div className="space-y-1.5">
+            <Label htmlFor="challenge-notes">
+              Message <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
             <Textarea
-              id="notes"
-              placeholder="e.g. I'm free evenings in Limassol, any court works"
-              rows={3}
-              {...register("notes")}
+              id="challenge-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={200}
+              placeholder={`Hey ${firstName}, up for a game at the Arena?`}
             />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Sending…" : "Send Request"}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={send} disabled={loading}>
+            {loading && <Loader2 className="animate-spin" />}
+            Send challenge
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -148,7 +148,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
               <div className="space-y-2">
                 <Label>City</Label>
                 <Select
-                  onValueChange={(v: string | null) => form1.setValue("home_city", v ?? "")}
+                  onValueChange={(v: string | null) => form1.setValue("home_city", v ?? "", { shouldValidate: true })}
                   defaultValue={form1.getValues("home_city")}
                 >
                   <SelectTrigger>
@@ -178,7 +178,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                     <button
                       key={s}
                       type="button"
-                      onClick={() => form2.setValue("skill_level", s)}
+                      onClick={() => form2.setValue("skill_level", s, { shouldValidate: true })}
                       className={cn(
                         "rounded-2xl border p-4 text-left text-sm font-semibold transition-all active:scale-[0.98]",
                         form2.watch("skill_level") === s
@@ -226,7 +226,7 @@ export function OnboardingFlow({ userId, initialProfile }: Props) {
                     <button
                       key={a}
                       type="button"
-                      onClick={() => form3.setValue("availability", a)}
+                      onClick={() => form3.setValue("availability", a, { shouldValidate: true })}
                       className={cn(
                         "rounded-2xl border p-4 text-left text-sm font-semibold transition-all active:scale-[0.98]",
                         form3.watch("availability") === a

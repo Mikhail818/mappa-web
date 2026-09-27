@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { PageHeader } from "@/components/common/PageHeader"
 import { PlayersGrid } from "./PlayersGrid"
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { title: "Find Players" }
+export const metadata: Metadata = { title: "Players" }
 
 export default async function PlayersPage() {
   const supabase = await createClient()
@@ -18,19 +19,18 @@ export default async function PlayersPage() {
       .eq("onboarding_completed", true)
       .neq("id", user.id)
       .order("matchmaking_rating", { ascending: false })
-      .limit(40),
+      .limit(200),
     supabase.from("player_favorites").select("player_id").eq("user_id", user.id),
   ])
 
+  if (!profile) redirect("/onboarding")
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Find Players</h1>
-        <p className="text-muted-foreground text-sm mt-1">Discover opponents in Cyprus</p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Players" subtitle="Find someone at your level for a 1v1." />
       <PlayersGrid
-        currentUser={profile!}
-        initialPlayers={players ?? []}
+        currentUser={profile}
+        players={players ?? []}
         initialFavs={(favData ?? []).map((r) => r.player_id)}
       />
     </div>
